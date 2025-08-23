@@ -49,8 +49,18 @@ SDA_PIN = 4;
 
 ## Software
 
-Add `Si7021_MQTT_HA` to custom_usermods
+Add to `build_flags` in platformio.ini:
 
+```
+   -D USERMOD_SI7021_MQTT_HA
+```
+
+Add to `lib_deps` in platformio.ini:
+
+```
+   adafruit/Adafruit Si7021 Library @ 1.4.0
+   BME280@~3.0.0
+```
 
 # Credits
 

@@ -5,7 +5,6 @@ This usermod supports the UI of the `usermod_v2_rotary_encoder_ui_ALT`.
 ## Functionalities
 
 Press the encoder to cycle through the options:
-
 * Brightness
 * Speed
 * Intensity
@@ -26,6 +25,10 @@ Copy the example `platformio_override.sample.ini` to the root directory of your 
 
 ### Define Your Options
 
+* `USERMOD_ROTARY_ENCODER_UI`       - define this to have this user mod included wled00\usermods_list.cpp
+* `USERMOD_FOUR_LINE_DISPLAY`       - define this to have this the Four Line Display mod included wled00\usermods_list.cpp
+                                        also tells this usermod that the display is available
+                                        (see the Four Line Display usermod `readme.md` for more details)
 * `ENCODER_DT_PIN`                  - defaults to 18
 * `ENCODER_CLK_PIN`                 - defaults to 5
 * `ENCODER_SW_PIN`                  - defaults to 19
@@ -40,5 +43,4 @@ No special requirements.
 ## Change Log
 
 2021-10
-
 * First public release

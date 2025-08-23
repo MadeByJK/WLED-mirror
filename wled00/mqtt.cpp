@@ -7,15 +7,6 @@
 #ifndef WLED_DISABLE_MQTT
 #define MQTT_KEEP_ALIVE_TIME 60    // contact the MQTT broker every 60 seconds
 
-#if MQTT_MAX_TOPIC_LEN > 32
-#warning "MQTT topics length > 32 is not recommended for compatibility with usermods!"
-#endif
-
-static const char* sTopicFormat PROGMEM = "%.*s/%s";
-
-// parse payload for brightness, ON/OFF or toggle
-// briLast is used to remember last brightness value in case of ON/OFF or toggle
-// bri is set to 0 if payload is "0" or "OFF" or "false"
 static void parseMQTTBriPayload(char* payload)
 {
   if      (strstr(payload, "ON") || strstr(payload, "on") || strstr(payload, "true")) {bri = briLast; stateUpdated(CALL_MODE_DIRECT_CHANGE);}
@@ -32,33 +23,31 @@ static void parseMQTTBriPayload(char* payload)
 static void onMqttConnect(bool sessionPresent)
 {
   //(re)subscribe to required topics
-  char subuf[MQTT_MAX_TOPIC_LEN + 9];
+  char subuf[38];
 
   if (mqttDeviceTopic[0] != 0) {
-    mqtt->subscribe(mqttDeviceTopic, 0);
-    snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "col");
+    strlcpy(subuf, mqttDeviceTopic, 33);
     mqtt->subscribe(subuf, 0);
-    snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "api");
+    strcat_P(subuf, PSTR("/col"));
+    mqtt->subscribe(subuf, 0);
+    strlcpy(subuf, mqttDeviceTopic, 33);
+    strcat_P(subuf, PSTR("/api"));
     mqtt->subscribe(subuf, 0);
   }
 
   if (mqttGroupTopic[0] != 0) {
-    mqtt->subscribe(mqttGroupTopic, 0);
-    snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttGroupTopic, "col");
+    strlcpy(subuf, mqttGroupTopic, 33);
     mqtt->subscribe(subuf, 0);
-    snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttGroupTopic, "api");
+    strcat_P(subuf, PSTR("/col"));
+    mqtt->subscribe(subuf, 0);
+    strlcpy(subuf, mqttGroupTopic, 33);
+    strcat_P(subuf, PSTR("/api"));
     mqtt->subscribe(subuf, 0);
   }
 
   UsermodManager::onMqttConnect(sessionPresent);
 
   DEBUG_PRINTLN(F("MQTT ready"));
-
-#ifndef USERMOD_SMARTNEST
-  snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "status");
-  mqtt->publish(subuf, 0, true, "online"); // retain message for a LWT
-#endif
-
   publishMqtt();
 }
 
@@ -75,8 +64,8 @@ static void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProp
   }
 
   if (index == 0) {                       // start (1st partial packet or the only packet)
-    p_free(payloadStr);                   // release buffer if it exists
-    payloadStr = static_cast<char*>(p_malloc(total+1)); // allocate new buffer
+    if (payloadStr) delete[] payloadStr;  // fail-safe: release buffer
+    payloadStr = new char[total+1];       // allocate new buffer
   }
   if (payloadStr == nullptr) return;      // buffer not allocated
 
@@ -101,7 +90,7 @@ static void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProp
     } else {
       // Non-Wled Topic used here. Probably a usermod subscribed to this topic.
       UsermodManager::onMqttMessage(topic, payloadStr);
-      p_free(payloadStr);
+      delete[] payloadStr;
       payloadStr = nullptr;
       return;
     }
@@ -131,12 +120,12 @@ static void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProp
     // topmost topic (just wled/MAC)
     parseMQTTBriPayload(payloadStr);
   }
-  p_free(payloadStr);
+  delete[] payloadStr;
   payloadStr = nullptr;
 }
 
 // Print adapter for flat buffers
-namespace {
+namespace { 
 class bufferPrint : public Print {
   char* _buf;
   size_t _size, _offset;
@@ -169,24 +158,28 @@ void publishMqtt()
 
   #ifndef USERMOD_SMARTNEST
   char s[10];
-  char subuf[MQTT_MAX_TOPIC_LEN + 16];
+  char subuf[48];
 
   sprintf_P(s, PSTR("%u"), bri);
-  snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "g");
+  strlcpy(subuf, mqttDeviceTopic, 33);
+  strcat_P(subuf, PSTR("/g"));
   mqtt->publish(subuf, 0, retainMqttMsg, s);         // optionally retain message (#2263)
 
   sprintf_P(s, PSTR("#%06X"), (colPri[3] << 24) | (colPri[0] << 16) | (colPri[1] << 8) | (colPri[2]));
-  snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "c");
+  strlcpy(subuf, mqttDeviceTopic, 33);
+  strcat_P(subuf, PSTR("/c"));
   mqtt->publish(subuf, 0, retainMqttMsg, s);         // optionally retain message (#2263)
 
-  snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "status");
-  mqtt->publish(subuf, 0, true, "online");  // retain message for a LWT
+  strlcpy(subuf, mqttDeviceTopic, 33);
+  strcat_P(subuf, PSTR("/status"));
+  mqtt->publish(subuf, 0, true, "online");          // retain message for a LWT
 
   // TODO: use a DynamicBufferList.  Requires a list-read-capable MQTT client API.
   DynamicBuffer buf(1024);
   bufferPrint pbuf(buf.data(), buf.size());
   XML_response(pbuf);
-  snprintf_P(subuf, sizeof(subuf)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "v");
+  strlcpy(subuf, mqttDeviceTopic, 33);
+  strcat_P(subuf, PSTR("/v"));
   mqtt->publish(subuf, 0, retainMqttMsg, buf.data(), pbuf.size());   // optionally retain message (#2263)
   #endif
 }
@@ -199,8 +192,7 @@ bool initMqtt()
   if (!mqttEnabled || mqttServer[0] == 0 || !WLED_CONNECTED) return false;
 
   if (mqtt == nullptr) {
-    void *ptr = p_malloc(sizeof(AsyncMqttClient));
-    mqtt = new (ptr) AsyncMqttClient(); // use placement new (into PSRAM), client will never be deleted
+    mqtt = new AsyncMqttClient();
     if (!mqtt) return false;
     mqtt->onMessage(onMqttMessage);
     mqtt->onConnect(onMqttConnect);
@@ -213,26 +205,14 @@ bool initMqtt()
   {
     mqtt->setServer(mqttIP, mqttPort);
   } else {
-    #ifdef ARDUINO_ARCH_ESP32
-    String mqttMDNS = mqttServer;
-    mqttMDNS.toLowerCase(); // make sure we have a lowercase hostname
-    int pos = mqttMDNS.indexOf(F(".local"));
-    if (pos > 0) mqttMDNS.remove(pos); // remove .local domain if present (and anything following it)
-    if (strlen(cmDNS) > 0 && mqttMDNS.length() > 0 && mqttMDNS.indexOf('.') < 0) { // if mDNS is enabled and server does not have domain
-      mqttIP = MDNS.queryHost(mqttMDNS.c_str());
-      if (mqttIP != IPAddress()) // if MDNS resolved the hostname
-        mqtt->setServer(mqttIP, mqttPort);
-      else
-        mqtt->setServer(mqttServer, mqttPort);
-    } else
-    #endif
-      mqtt->setServer(mqttServer, mqttPort);
+    mqtt->setServer(mqttServer, mqttPort);
   }
   mqtt->setClientId(mqttClientID);
   if (mqttUser[0] && mqttPass[0]) mqtt->setCredentials(mqttUser, mqttPass);
 
   #ifndef USERMOD_SMARTNEST
-  snprintf_P(mqttStatusTopic, sizeof(mqttStatusTopic)-1, sTopicFormat, MQTT_MAX_TOPIC_LEN, mqttDeviceTopic, "status");
+  strlcpy(mqttStatusTopic, mqttDeviceTopic, 33);
+  strcat_P(mqttStatusTopic, PSTR("/status"));
   mqtt->setWill(mqttStatusTopic, 0, true, "offline"); // LWT message
   #endif
   mqtt->setKeepAlive(MQTT_KEEP_ALIVE_TIME);

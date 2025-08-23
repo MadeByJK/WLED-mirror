@@ -2,7 +2,6 @@
 
 v2 Usermod to automatically save settings
 to preset number AUTOSAVE_PRESET_NUM after a change to any of:
-
 * brightness
 * effect speed
 * effect intensity
@@ -20,7 +19,7 @@ Note: WLED doesn't respect the brightness of the preset being auto loaded, so th
 
 ## Installation
 
-Copy and update the example `platformio_override.ini.sample`
+Copy and update the example `platformio_override.ini.sample` 
 from the Rotary Encoder UI usermode folder to the root directory of your particular build.
 This file should be placed in the same directory as `platformio.ini`.
 
@@ -51,9 +50,6 @@ Note: the Four Line Display usermod requires the libraries `U8g2` and `Wire`.
 ## Change Log
 
 2021-02
-
 * First public release
-
 2021-04
-
 * Adaptation for runtime configuration.
