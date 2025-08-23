@@ -1,4 +1,3 @@
-#pragma once
 #ifndef WLED_FCN_DECLARE_H
 #define WLED_FCN_DECLARE_H
 
@@ -25,7 +24,7 @@ void IRAM_ATTR touchButtonISR();
 
 //cfg.cpp
 bool deserializeConfig(JsonObject doc, bool fromFS = false);
-bool deserializeConfigFromFS();
+void deserializeConfigFromFS();
 bool deserializeConfigSec();
 void serializeConfig();
 void serializeConfigSec();
@@ -231,8 +230,7 @@ void deletePreset(byte index);
 bool getPresetName(byte index, String& name);
 
 //remote.cpp
-void handleWiZdata(uint8_t *incomingData, size_t len);
-void handleRemote();
+void handleRemote(uint8_t *data, size_t len);
 
 //set.cpp
 bool isAsterisksOnly(const char* str, byte maxLen);
@@ -374,7 +372,7 @@ void userLoop();
 //util.cpp
 int getNumVal(const String* req, uint16_t pos);
 void parseNumber(const char* str, byte* val, byte minv=0, byte maxv=255);
-bool getVal(JsonVariant elem, byte* val, byte minv=0, byte maxv=255); // getVal supports inc/decrementing and random ("X~Y(r|~[w][-][Z])" form)
+bool getVal(JsonVariant elem, byte* val, byte minv=0, byte maxv=255);
 bool getBoolVal(JsonVariant elem, bool dflt);
 bool updateVal(const char* req, const char* key, byte* val, byte minv=0, byte maxv=255);
 size_t printSetFormCheckbox(Print& settingsScript, const char* key, int val);

@@ -773,8 +773,8 @@ function populateSegments(s)
 		}
 
 		let segp = `<div id="segp${i}" class="sbs">`+
-						`<i class="icons slider-icon pwr ${inst.on ? "act":""}" id="seg${i}pwr" title="Power" onclick="setSegPwr(${i})">&#xe08f;</i>`+
-						`<div class="sliderwrap il" title="Opacity/Brightness">`+
+						`<i class="icons slider-icon pwr ${inst.on ? "act":""}" id="seg${i}pwr" onclick="setSegPwr(${i})">&#xe08f;</i>`+
+						`<div class="sliderwrap il">`+
 							`<input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" oninput="updateTrail(this)" max="255" min="1" type="range" value="${inst.bri}" />`+
 							`<div class="sliderdisplay"></div>`+
 						`</div>`+
@@ -810,7 +810,7 @@ function populateSegments(s)
 		cn += `<div class="seg lstI ${i==s.mainseg && !simplifiedUI ? 'selected' : ''} ${exp ? "expanded":""}" id="seg${i}" data-set="${inst.set}">`+
 				`<label class="check schkl ${smpl}">`+
 					`<input type="checkbox" id="seg${i}sel" onchange="selSeg(${i})" ${inst.sel ? "checked":""}>`+
-					`<span class="checkmark" title="Select"></span>`+
+					`<span class="checkmark"></span>`+
 				`</label>`+
 				`<div class="segname ${smpl}" onclick="selSegEx(${i})">`+
 					`<i class="icons e-icon frz" id="seg${i}frz" title="(un)Freeze" onclick="event.preventDefault();tglFreeze(${i});">&#x${inst.frz ? (li.live && li.liveseg==i?'e410':'e0e8') : 'e325'};</i>`+
@@ -1659,17 +1659,13 @@ function setEffectParameters(idx)
 			paOnOff[0] = paOnOff[0].substring(0,dPos);
 		}
 		if (paOnOff.length>0 && paOnOff[0] != "!") text = paOnOff[0];
-		gId("adPal").classList.remove("hide");
-		if (lastinfo.cpalcount>0) gId("rmPal").classList.remove("hide");
 	} else {
 		// disable palette list
 		text += ' not used';
 		palw.style.display = "none";
-		gId("adPal").classList.add("hide");
-		gId("rmPal").classList.add("hide");
 		// Close palette dialog if not available
-		if (palw.lastElementChild.tagName == "DIALOG") {
-			palw.lastElementChild.close();
+		if (gId("palw").lastElementChild.tagName == "DIALOG") {
+			gId("palw").lastElementChild.close();
 		}
 	}
 	pall.innerHTML = icon + text;
@@ -1883,7 +1879,7 @@ function makeSeg()
 function resetUtil(off=false)
 {
 	gId('segutil').innerHTML = `<div class="seg btn btn-s${off?' off':''}" style="padding:0;margin-bottom:12px;">`
-	+ '<label class="check schkl"><input type="checkbox" id="selall" onchange="selSegAll(this)"><span class="checkmark" title="Select all"></span></label>'
+	+ '<label class="check schkl"><input type="checkbox" id="selall" onchange="selSegAll(this)"><span class="checkmark"></span></label>'
 	+ `<div class="segname" ${off?'':'onclick="makeSeg()"'}><i class="icons btn-icon">&#xe18a;</i>Add segment</div>`
 	+ '<div class="pop hide" onclick="event.stopPropagation();">'
 	+ `<i class="icons g-icon" title="Select group" onclick="this.nextElementSibling.classList.toggle('hide');">&#xE34B;</i>`
@@ -2653,28 +2649,28 @@ function fromRgb()
 	var g = gId('sliderG').value;
 	var b = gId('sliderB').value;
 	setPicker(`rgb(${r},${g},${b})`);
-	let cd = gId('csl').children[csel]; // color slots
-	cd.dataset.r = r;
-	cd.dataset.g = g;
-	cd.dataset.b = b;
-	setCSL(cd);
+	let cd = gId('csl').children; // color slots
+	cd[csel].dataset.r = r;
+	cd[csel].dataset.g = g;
+	cd[csel].dataset.b = b;
+	setCSL(cd[csel]);
 }
 
 function fromW()
 {
 	let w = gId('sliderW');
-	let cd = gId('csl').children[csel]; // color slots
-	cd.dataset.w = w.value;
-	setCSL(cd);
+	let cd = gId('csl').children; // color slots
+	cd[csel].dataset.w = w.value;
+	setCSL(cd[csel]);
 	updateTrail(w);
 }
 
 // sr 0: from RGB sliders, 1: from picker, 2: from hex
 function setColor(sr)
 {
-	var cd = gId('csl').children[csel]; // color slots
-	let cdd = cd.dataset;
-	let w = parseInt(cdd.w), r = parseInt(cdd.r), g = parseInt(cdd.g), b = parseInt(cdd.b);
+	var cd = gId('csl').children; // color slots
+	let cdd = cd[csel].dataset;
+	let w = 0, r,g,b;
 	if (sr == 1 && isRgbBlack(cdd)) cpick.color.setChannel('hsv', 'v', 100);
 	if (sr != 2 && hasWhite) w = parseInt(gId('sliderW').value);
 	var col = cpick.color.rgb;
@@ -2682,7 +2678,7 @@ function setColor(sr)
 	cdd.g = g = hasRGB ? col.g : w;
 	cdd.b = b = hasRGB ? col.b : w;
 	cdd.w = w;
-	setCSL(cd);
+	setCSL(cd[csel]);
 	var obj = {"seg": {"col": [[],[],[]]}};
 	obj.seg.col[csel] = [r, g, b, w];
 	requestJson(obj);
@@ -3118,9 +3114,10 @@ function mergeDeep(target, ...sources)
 	return mergeDeep(target, ...sources);
 }
 
-function tooltip(cont=null) {
+function tooltip(cont=null)
+{
 	d.querySelectorAll((cont?cont+" ":"")+"[title]").forEach((element)=>{
-		element.addEventListener("pointerover", ()=>{
+		element.addEventListener("mouseover", ()=>{
 			// save title
 			element.setAttribute("data-title", element.getAttribute("title"));
 			const tooltip = d.createElement("span");
@@ -3145,7 +3142,7 @@ function tooltip(cont=null) {
 			tooltip.classList.add("visible");
 		});
 
-		element.addEventListener("pointerout", ()=>{
+		element.addEventListener("mouseout", ()=>{
 			d.querySelectorAll('.tooltip').forEach((tooltip)=>{
 				tooltip.classList.remove("visible");
 				d.body.removeChild(tooltip);
