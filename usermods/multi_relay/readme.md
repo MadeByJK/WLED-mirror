@@ -52,6 +52,10 @@ Some settings can be defined (defaults) at compile time by setting the following
 ```cpp
 // enable or disable HA discovery for externally controlled relays
 #define MULTI_RELAY_HA_DISCOVERY true
+
+// enable overlay feature to show relay state on LED strip (disabled by default)
+// when enabled, each relay can be configured to show its state on specific LEDs
+#define MULTI_RELAY_OVERLAY 1
 ```
 
 The following definitions should be a list of values (maximum number of entries is MULTI_RELAY_MAX_RELAYS) that will be applied to the relays in order:
@@ -111,6 +115,9 @@ Usermod can be configured via the Usermods settings page.
 * `active-high` - assign high/low activation of relay (can be used to reverse relay states)
 * `external` - if enabled, WLED does not control relay, it can only be triggered by an external command (MQTT, HTTP, JSON or button)
 * `button` - button (from LED Settings) that controls this relay
+* `OL-index` - (overlay feature only, requires MULTI_RELAY_OVERLAY build flag) starting LED index for overlay display (-1 to disable)
+* `OL-count` - (overlay feature only, requires MULTI_RELAY_OVERLAY build flag) number of LEDs to show relay state (0-255)
+* `OL-color` - (overlay feature only, requires MULTI_RELAY_OVERLAY build flag) color of the overlay LEDs while the relay is on (color picker, stored as `#rrggbb`)
 
 If there is no MultiRelay section, just save current configuration and re-open Usermods settings page. 
 
